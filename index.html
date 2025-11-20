@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>めぐみQRスキャナー</title>
+
+<style>
+    body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(180deg, #ffe4f0, #e3f2ff);
+        min-height: 100vh;
+    }
+    h1 {
+        text-align: center;
+        color: #ff66aa;
+        font-size: 28px;
+        margin-bottom: 20px;
+    }
+    #video {
+        width: 100%;
+        border-radius: 16px;
+        background: #ddd;
+        margin-bottom: 20px;
+    }
+    #result {
+        padding: 10px;
+        background: white;
+        border-radius: 12px;
+        min-height: 40px;
+        font-size: 18px;
+        color: #333;
+    }
+    button {
+        width: 100%;
+        padding: 15px;
+        margin-top: 20px;
+        border: none;
+        border-radius: 12px;
+        background: #66aaff;
+        color: white;
+        font-size: 18px;
+    }
+</style>
+
+</head>
+<body>
+
+<h1>📱 めぐみQRスキャナー</h1>
+
+<video id="video" autoplay></video>
+<div id="result">読み取ったコード：まだなし</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+
+<script>
+    const video = document.getElementById("video");
+    const result = document.getElementById("result");
+
+    // カメラ起動
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true);
+            video.play();
+            scanLoop();
+        });
+
+    function scanLoop() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const code = jsQR(img.data, canvas.width, canvas.height);
+
+        if (code) {
+            result.textContent = "読み取ったコード：" + code.data;
+        }
+
+        requestAnimationFrame(scanLoop);
+    }
+</script>
+
+</body>
+</html>
