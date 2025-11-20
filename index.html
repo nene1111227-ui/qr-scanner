@@ -24,24 +24,42 @@
         border-radius: 16px;
         background: #ddd;
         margin-bottom: 20px;
+        display: none;
     }
-    #result {
-        padding: 10px;
+    #result-list {
+        margin-top: 20px;
         background: white;
+        padding: 15px;
         border-radius: 12px;
-        min-height: 40px;
-        font-size: 18px;
-        color: #333;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 16px;
+    }
+    th, td {
+        border-bottom: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
     }
     button {
         width: 100%;
         padding: 15px;
-        margin-top: 20px;
+        margin-top: 15px;
         border: none;
         border-radius: 12px;
         background: #66aaff;
         color: white;
         font-size: 18px;
+    }
+    #user-input {
+        padding: 10px;
+        border-radius: 8px;
+        width: 100%;
+        margin-bottom: 20px;
+        border: 1px solid #aaa;
+        font-size: 16px;
     }
 </style>
 
@@ -50,40 +68,95 @@
 
 <h1>📱 QRスキャナー</h1>
 
+<input id="user-input" placeholder="名前を入力（最初の1回だけ）">
+
+<button id="start-btn">📷 スキャン開始</button>
+
 <video id="video" autoplay></video>
-<div id="result">読み取ったコード：まだなし</div>
+
+<div id="result-list">
+    <h3>読み取り履歴</h3>
+    <table id="history-table">
+        <tr>
+            <th>日時</th>
+            <th>管理番号</th>
+            <th>読み取った人</th>
+        </tr>
+    </table>
+</div>
+
+<button id="send-btn">📤 一括送信（未接続）</button>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
 <script>
+    const startButton = document.getElementById("start-btn");
     const video = document.getElementById("video");
-    const result = document.getElementById("result");
+    const historyTable = document.getElementById("history-table");
+    const userInput = document.getElementById("user-input");
 
-    // カメラ起動
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => {
-            video.srcObject = stream;
-            video.setAttribute("playsinline", true);
-            video.play();
-            scanLoop();
-        });
+    let scanning = false;
+    let userName = "";
+
+    startButton.addEventListener("click", () => {
+        userName = userInput.value.trim();
+        if (!userName) {
+            alert("先に名前を入力してください！");
+            return;
+        }
+
+        startScan();
+    });
+
+    function startScan() {
+        scanning = true;
+        video.style.display = "block";
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                scanLoop();
+            });
+    }
 
     function scanLoop() {
+        if (!scanning) return;
+
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
+
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(img.data, canvas.width, canvas.height);
 
         if (code) {
-            result.textContent = "読み取ったコード：" + code.data;
+            addHistory(code.data);
+            // 連続読み取りだけど、同じコード連続読み防止のため少し待つ
+            setTimeout(() => scanLoop(), 800);
+            return;
         }
 
         requestAnimationFrame(scanLoop);
+    }
+
+    function addHistory(code) {
+        const row = document.createElement("tr");
+
+        const now = new Date().toLocaleString();
+
+        row.innerHTML = `
+            <td>${now}</td>
+            <td>${code}</td>
+            <td>${userName}</td>
+        `;
+
+        historyTable.appendChild(row);
     }
 </script>
 
